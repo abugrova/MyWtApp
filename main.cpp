@@ -36,7 +36,7 @@ std::unique_ptr<WApplication> createApplication(const Wt::WEnvironment& env) {
         app->setTheme(std::make_shared<WCssTheme>(theme));
     }
 
-    app->setTitle("Example WT app");
+    app->setTitle("Booking fo NNSTU");
     app->useStyleSheet("./style/Theme.css");
     return app;
 }
