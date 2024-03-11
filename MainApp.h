@@ -16,6 +16,8 @@ public:
 
     std::unique_ptr<Wt::WContainerWidget> createBookingTable();
     std::unique_ptr<Wt::WContainerWidget> createRoomTable();
+    std::unique_ptr<Wt::WContainerWidget> createBooker();
+
     void addNewBookingToDb(bool &retFlag);
     void addNewRoomToDb();
 

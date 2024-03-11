@@ -46,7 +46,59 @@ mainApp::mainApp(const Wt::WEnvironment &env) : Wt::WApplication(env)
 
     tabW->addTab(std::move(createRoomTable()), "Rooms table", Wt::ContentLoading::Eager);
     tabW->addTab(std::move(createBookingTable()), "Booking table", Wt::ContentLoading::Eager);
+    tabW->addTab(std::move(createBooker()), "Booker view", Wt::ContentLoading::Eager);
 }
+
+std::unique_ptr<Wt::WContainerWidget> mainApp::createBooker()
+{
+    auto containerForBooker = std::make_unique<Wt::WContainerWidget>();
+    containerForBooker->setWidth(Wt::WLength("100%"));
+    containerForBooker->setScrollVisibilityEnabled(true);
+    containerForBooker->setOverflow(Wt::Overflow::Auto, Wt::Orientation::Horizontal);
+
+    auto table = containerForBooker->addNew<Wt::WTable>();
+    table->setHeaderCount(2);
+    table->setHeaderCount(1, Wt::Orientation::Vertical);
+    table->elementAt(0, 0)->addNew<Wt::WText>("Day");
+    for (int i = 1; i <= 36; i++)
+    {
+        table->elementAt(0, i)->addNew<Wt::WText>(std::to_string((i-1)/6+1));
+    }
+    table->elementAt(1, 0)->addNew<Wt::WText>("Lecture");
+    int col=1;
+    for (int i = 0; i < 6; i++)
+    {
+        table->elementAt(0, col)->setColumnSpan(6);
+        table->elementAt(1, col)->addNew<Wt::WText>("1 lecture");
+        table->elementAt(1, col+1)->addNew<Wt::WText>("2 lecture");
+        table->elementAt(1, col+2)->addNew<Wt::WText>("3 lecture");
+        table->elementAt(1, col+3)->addNew<Wt::WText>("4 lecture");
+        table->elementAt(1, col+4)->addNew<Wt::WText>("5 lecture");
+        table->elementAt(1, col+5)->addNew<Wt::WText>("6 lecture");
+        col+=6;
+    }
+    using Rooms = dbo::collection<dbo::ptr<Room>>;
+    Rooms rooms = session.find<Room>();
+    int row = 1;
+    for (const dbo::ptr<Room> &room : rooms)
+    {
+        row++;
+        table->elementAt(row, 0)->addNew<Wt::WText>(room->number);
+        table->elementAt(row, 1)->addNew<Wt::WText>(room->number);
+        table->elementAt(row, 2)->addNew<Wt::WText>(room->number);
+        table->elementAt(row, 3)->addNew<Wt::WText>(room->number);
+        table->elementAt(row, 4)->addNew<Wt::WText>(room->number);
+        table->elementAt(row, 5)->addNew<Wt::WText>(room->number);
+        table->elementAt(row, 6)->addNew<Wt::WText>(room->number);
+    }
+    table->addStyleClass("table");
+    table->toggleStyleClass("table-striped", true);
+    table->toggleStyleClass("table-bordered", true);
+    table->toggleStyleClass("table-hover", true);
+    table->toggleStyleClass("table-sm", true);
+    return containerForBooker;
+}
+
 std::unique_ptr<Wt::WContainerWidget> mainApp::createRoomTable()
 {
     auto containerForRoomsTable = std::make_unique<Wt::WContainerWidget>();
