@@ -57,6 +57,16 @@
         "cinttypes": "cpp",
         "typeinfo": "cpp",
         "WString.C": "cpp",
-        "WIOService.C": "cpp"
+        "WIOService.C": "cpp",
+        "csignal": "cpp",
+        "codecvt": "cpp",
+        "condition_variable": "cpp",
+        "iomanip": "cpp",
+        "mutex": "cpp",
+        "semaphore": "cpp",
+        "stop_token": "cpp",
+        "thread": "cpp",
+        "WebSession.C": "cpp",
+        "WTable.C": "cpp"
     }
 }

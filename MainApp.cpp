@@ -9,6 +9,8 @@
 #include <Wt/WText.h>
 #include <Wt/WPushButton.h>
 #include <Wt/WCheckBox.h>
+#include <Wt/WTabWidget.h>
+#include <Wt/WMessageBox.h>
 
 #include <Wt/Dbo/Dbo.h>
 #include <string>
@@ -38,65 +40,57 @@ mainApp::mainApp(const Wt::WEnvironment &env) : Wt::WApplication(env)
         transaction.commit();
     }
 
-    auto container = this->root()->addWidget(std::make_unique<Wt::WContainerWidget>());
+    // create tab widget
+    Wt::WTabWidget *tabW = this->root()->addNew<Wt::WTabWidget>();
+    tabW->setStyleClass("tabwidget");
 
-    table.reset(container->addWidget(std::make_unique<Wt::WTable>()));
-    
-    table->setHeaderCount(1);
-    table->setWidth(Wt::WLength("100%"));
+    //
+    auto containerForRoomsTable = std::make_unique<Wt::WContainerWidget>();
+    roomsTable.reset(containerForRoomsTable->addWidget(std::make_unique<Wt::WTable>()));
 
-    table->elementAt(0, 0)->addNew<Wt::WText>("#");
-    table->elementAt(0, 1)->addNew<Wt::WText>("Number");
-    table->elementAt(0, 2)->addNew<Wt::WText>("Building");
-    table->elementAt(0, 3)->addNew<Wt::WText>("Capacity");
-    table->elementAt(0, 4)->addNew<Wt::WText>("Projector");
-    table->elementAt(0, 5)->addNew<Wt::WText>("MultiDeck");
-    table->elementAt(0, 6)->addNew<Wt::WText>("PCs");
+    roomsTable->setHeaderCount(1);
+    roomsTable->setWidth(Wt::WLength("80%"));
 
-    using Rooms = dbo::collection<dbo::ptr<Room>>;
+    roomsTable->elementAt(0, 0)->addNew<Wt::WText>("#");
+    roomsTable->elementAt(0, 1)->addNew<Wt::WText>("Number");
+    roomsTable->elementAt(0, 2)->addNew<Wt::WText>("Building");
+    roomsTable->elementAt(0, 3)->addNew<Wt::WText>("Capacity");
+    roomsTable->elementAt(0, 4)->addNew<Wt::WText>("Projector");
+    roomsTable->elementAt(0, 5)->addNew<Wt::WText>("MultiDeck");
+    roomsTable->elementAt(0, 6)->addNew<Wt::WText>("PCs");
     dbo::Transaction transaction(session);
-    Rooms rooms = session.find<Room>();
-    int row = 0;
-    for (const dbo::ptr<Room> &room : rooms)
     {
+        using Rooms = dbo::collection<dbo::ptr<Room>>;
+        Rooms rooms = session.find<Room>();
+        int row = 0;
+        for (const dbo::ptr<Room> &room : rooms)
+        {
+            row++;
+            roomsTable->elementAt(row, 0)->addNew<Wt::WText>(Wt::WString("{1}").arg(row));
+            roomsTable->elementAt(row, 1)->addNew<Wt::WText>(Wt::WString("{1}").arg(room->number));
+            roomsTable->elementAt(row, 2)->addNew<Wt::WText>(Wt::WString("{1}").arg(room->building));
+            roomsTable->elementAt(row, 3)->addNew<Wt::WText>(Wt::WString("{1}").arg(room->capacity));
+            roomsTable->elementAt(row, 4)->addNew<Wt::WText>(Wt::WString("{1}").arg(room->projector ? "Yes" : "No"));
+            roomsTable->elementAt(row, 5)->addNew<Wt::WText>(Wt::WString("{1}").arg(room->multideck ? "Yes" : "No"));
+            roomsTable->elementAt(row, 6)->addNew<Wt::WText>(Wt::WString("{1}").arg(room->personalComputers));
+        }
         row++;
-        table->elementAt(row, 0)
+        roomsTable->elementAt(row, 0)
             ->addNew<Wt::WText>(Wt::WString("{1}").arg(row));
-        table->elementAt(row, 1)
-            ->addNew<Wt::WText>(Wt::WString("{1}").arg(room->number));
-        table->elementAt(row, 2)
-            ->addNew<Wt::WText>(Wt::WString("{1}").arg(room->building));
-        table->elementAt(row, 3)
-            ->addNew<Wt::WText>(Wt::WString("{1}").arg(room->capacity));
-        table->elementAt(row, 4)
-            ->addNew<Wt::WText>(Wt::WString("{1}").arg(room->projector?"Yes":"No"));
-        table->elementAt(row, 5)
-            ->addNew<Wt::WText>(Wt::WString("{1}").arg(room->multideck?"Yes":"No"));
-        table->elementAt(row, 6)
-            ->addNew<Wt::WText>(Wt::WString("{1}").arg(room->personalComputers));
+        newNumber.reset(roomsTable->elementAt(row, 1)->addNew<Wt::WLineEdit>());
+
+        newBuilding.reset(roomsTable->elementAt(row, 2)->addNew<Wt::WLineEdit>());
+        newCapacity.reset(roomsTable->elementAt(row, 3)->addNew<Wt::WLineEdit>());
+        newProjector.reset(roomsTable->elementAt(row, 4)->addNew<Wt::WCheckBox>());
+        newMultiDeck.reset(roomsTable->elementAt(row, 5)->addNew<Wt::WCheckBox>());
+        newPCs.reset(roomsTable->elementAt(row, 6)->addNew<Wt::WLineEdit>());
     }
-    row++;
-    table->elementAt(row, 0)
-        ->addNew<Wt::WText>(Wt::WString("{1}").arg(row));
-    newNumber.reset(table->elementAt(row, 1)->addNew<Wt::WLineEdit>());
-
-    newBuilding.reset(table->elementAt(row, 2)
-                           ->addNew<Wt::WLineEdit>());
-    newCapacity.reset(table->elementAt(row, 3)
-                           ->addNew<Wt::WLineEdit>());
-    newProjector.reset(table->elementAt(row, 4)
-                            ->addNew<Wt::WCheckBox>());
-    newMultiDeck.reset(table->elementAt(row, 5)
-                            ->addNew<Wt::WCheckBox>());
-    newPCs.reset(table->elementAt(row, 6)
-                      ->addNew<Wt::WLineEdit>());
-
-    auto saveButton = container->addWidget(std::make_unique<Wt::WPushButton>("Save"));
-    saveButton->clicked().connect(
+    saveNewRoomButton.reset(containerForRoomsTable->addWidget(std::make_unique<Wt::WPushButton>("Save")));
+    saveNewRoomButton->clicked().connect(
         [=]()
         {
-            dbo::Transaction transaction(session);
-
+            // just creating transaction here, its destruction will commit
+            dbo::Transaction addTransaction(session);
             auto room = std::make_unique<Room>();
             room->number = newNumber->text().toUTF8();
             room->building = newBuilding->text().toUTF8();
@@ -105,11 +99,89 @@ mainApp::mainApp(const Wt::WEnvironment &env) : Wt::WApplication(env)
             room->multideck = newMultiDeck->isChecked();
             room->personalComputers = std::atoi(newPCs->text().toUTF8().c_str());
             session.add(std::move(room));
-            saveButton->setText("Saved");
+            saveNewRoomButton->setText("Saved");
         });
-    table->addStyleClass("table");
-    table->toggleStyleClass("table-striped",true);
-    table->toggleStyleClass("table-bordered",true);
-    table->toggleStyleClass("table-hover",true);
-    table->toggleStyleClass("table-sm",true);
+    roomsTable->addStyleClass("table");
+    roomsTable->toggleStyleClass("table-striped", true);
+    roomsTable->toggleStyleClass("table-bordered", true);
+    roomsTable->toggleStyleClass("table-hover", true);
+    roomsTable->toggleStyleClass("table-sm", true);
+
+    // end rooms talbe
+
+    // begin booking table
+
+    //
+    auto containerForBookingTable = std::make_unique<Wt::WContainerWidget>();
+    bookingTable.reset(containerForBookingTable->addWidget(std::make_unique<Wt::WTable>()));
+
+    bookingTable->setHeaderCount(1);
+    bookingTable->setWidth(Wt::WLength("80%"));
+
+    bookingTable->elementAt(0, 0)->addNew<Wt::WText>("#");
+    bookingTable->elementAt(0, 1)->addNew<Wt::WText>("Room");
+    bookingTable->elementAt(0, 2)->addNew<Wt::WText>("Start time");
+    bookingTable->elementAt(0, 3)->addNew<Wt::WText>("End time");
+    bookingTable->elementAt(0, 4)->addNew<Wt::WText>("Subject");
+    bookingTable->elementAt(0, 5)->addNew<Wt::WText>("Lecturer");
+
+    {
+        using Booking = dbo::collection<dbo::ptr<BookingRecord>>;
+        Booking bookings = session.find<BookingRecord>();
+        int row = 0;
+        for (const dbo::ptr<BookingRecord> &booking : bookings)
+        {
+            row++;
+            bookingTable->elementAt(row, 0)->addNew<Wt::WText>(Wt::WString("{1}").arg(row));
+            bookingTable->elementAt(row, 1)->addNew<Wt::WText>(Wt::WString("{1}").arg(booking->room->number));
+            bookingTable->elementAt(row, 2)->addNew<Wt::WText>(Wt::WString("{1}").arg(booking->startTime));
+            bookingTable->elementAt(row, 3)->addNew<Wt::WText>(Wt::WString("{1}").arg(booking->endTime));
+            bookingTable->elementAt(row, 4)->addNew<Wt::WText>(Wt::WString("{1}").arg(booking->subject));
+            bookingTable->elementAt(row, 5)->addNew<Wt::WText>(Wt::WString("{1}").arg(booking->lecturer));
+        }
+        row++;
+        bookingTable->elementAt(row, 0)->addNew<Wt::WText>(Wt::WString("{1}").arg(row));
+        newRoom.reset(bookingTable->elementAt(row, 1)->addNew<Wt::WLineEdit>());
+        newStartTime.reset(bookingTable->elementAt(row, 2)->addNew<Wt::WLineEdit>());
+        newEndTime.reset(bookingTable->elementAt(row, 3)->addNew<Wt::WLineEdit>());
+        newSubject.reset(bookingTable->elementAt(row, 4)->addNew<Wt::WLineEdit>());
+        newLecturer.reset(bookingTable->elementAt(row, 5)->addNew<Wt::WLineEdit>());
+    }
+    saveNewBookingButton.reset(containerForBookingTable->addWidget(std::make_unique<Wt::WPushButton>("Save")));
+    saveNewBookingButton->clicked().connect(
+        [=]()
+        {
+            // just creating transaction here, its destruction will commit
+            // dbo::Transaction addTransaction(session);
+            auto booking = std::make_unique<BookingRecord>();
+            dbo::Transaction transaction(session);
+            auto requiredRoom = session.find<Room>().where("number = ?").bind(newRoom->text().toUTF8());
+            auto sizeOfResult = requiredRoom.resultList().size();
+            if (sizeOfResult !=1) {
+                Wt::StandardButton answer
+                = Wt::WMessageBox::show("Error",
+                                    "<p>Wrong data for room number!</p>",
+                                    Wt::StandardButton::Ok);
+                // to remove unused var warning
+                (void)answer;
+                return;
+            }
+            booking->room = requiredRoom;
+            booking->startTime = std::atoi(newStartTime->text().toUTF8().c_str());
+            booking->endTime = std::atoi(newEndTime->text().toUTF8().c_str());
+            booking->subject = newSubject->text().toUTF8();
+            booking->lecturer = newLecturer->text().toUTF8();
+            session.add(std::move(booking));
+            saveNewBookingButton->setText("Saved");
+        });
+    bookingTable->addStyleClass("table");
+    bookingTable->toggleStyleClass("table-striped", true);
+    bookingTable->toggleStyleClass("table-bordered", true);
+    bookingTable->toggleStyleClass("table-hover", true);
+    bookingTable->toggleStyleClass("table-sm", true);
+
+    // end booking table
+
+    tabW->addTab(std::move(containerForRoomsTable), "Rooms table", Wt::ContentLoading::Eager);
+    tabW->addTab(std::move(containerForBookingTable), "Booking table", Wt::ContentLoading::Eager);
 }
