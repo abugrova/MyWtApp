@@ -67,6 +67,11 @@
         "stop_token": "cpp",
         "thread": "cpp",
         "WebSession.C": "cpp",
-        "WTable.C": "cpp"
+        "WTable.C": "cpp",
+        "WPushButton.C": "cpp",
+        "WWebWidget.C": "cpp",
+        "complex": "cpp",
+        "typeindex": "cpp",
+        "variant": "cpp"
     }
 }

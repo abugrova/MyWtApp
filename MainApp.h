@@ -12,6 +12,12 @@ public:
     Wt::Dbo::Session session;
 
     mainApp(const Wt::WEnvironment &env);
+    mainApp(const mainApp &other) = delete;
+
+    std::unique_ptr<Wt::WContainerWidget> createBookingTable();
+    std::unique_ptr<Wt::WContainerWidget> createRoomTable();
+    void addNewBookingToDb(bool &retFlag);
+    void addNewRoomToDb();
 
     static mainApp *mainPageInst()
     {
@@ -19,31 +25,36 @@ public:
     }
 
     // wtable for rooms table
-    std::shared_ptr<Wt::WTable> roomsTable{};
+    Wt::WTable *roomsTable{};
 
-    std::shared_ptr<Wt::WLineEdit> newNumber{};
-    std::shared_ptr<Wt::WLineEdit> newBuilding{};
-    std::shared_ptr<Wt::WLineEdit> newCapacity{};
-    std::shared_ptr<Wt::WCheckBox> newProjector{};
-    std::shared_ptr<Wt::WCheckBox> newMultiDeck{};
-    std::shared_ptr<Wt::WLineEdit> newPCs{};
+    Wt::WLineEdit *newNumber{};
+    Wt::WLineEdit *newBuilding{};
+    Wt::WLineEdit *newCapacity{};
+    Wt::WCheckBox *newProjector{};
+    Wt::WCheckBox *newMultiDeck{};
+    Wt::WLineEdit *newPCs{};
 
-    std::shared_ptr<Wt::WPushButton> saveNewRoomButton{};
+    Wt::WPushButton *saveNewRoomButton{};
 
+    Wt::WTable *bookingTable{};
+    // unix epoch format?
+    Wt::WLineEdit *newStartTime{};
+    Wt::WLineEdit *newEndTime{};
 
-    std::shared_ptr<Wt::WTable> bookingTable{};
-    std::shared_ptr<Wt::WLineEdit> newStartTime{};
-    std::shared_ptr<Wt::WLineEdit> newEndTime{};
-    std::shared_ptr<Wt::WLineEdit> newLecturer{};
-    std::shared_ptr<Wt::WLineEdit> newSubject{};
-    std::shared_ptr<Wt::WLineEdit> newRoom{};
-    std::shared_ptr<Wt::WPushButton> saveNewBookingButton{};
+    Wt::WLineEdit *newLecturer{};
+    Wt::WLineEdit *newSubject{};
+    Wt::WLineEdit *newRoom{};
+    Wt::WPushButton *saveNewBookingButton{};
 
-
-    ~mainApp(){
-         log("info")  <<"start desctruction";
-         //saveNewRoomButton.reset();
-         log("info")  <<"end desctruction";
+    ~mainApp()
+    {
+        log("info") << "start desctruction";
+        // saveNewRoomButton.reset();
+        log("info") << "end desctruction";
+    }
+    void refresh()
+    {
+        this->refresh();
     }
 };
 

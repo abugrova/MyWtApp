@@ -34,23 +34,26 @@ mainApp::mainApp(const Wt::WEnvironment &env) : Wt::WApplication(env)
         }
         catch (dbo::Exception &e)
         {
-            log("!!! failed: ") << e.what();
+            log("error") << e.what();
         }
 
         transaction.commit();
     }
-
+    dbo::Transaction transaction(session);
     // create tab widget
     Wt::WTabWidget *tabW = this->root()->addNew<Wt::WTabWidget>();
     tabW->setStyleClass("tabwidget");
 
-    //
+    tabW->addTab(std::move(createRoomTable()), "Rooms table", Wt::ContentLoading::Eager);
+    tabW->addTab(std::move(createBookingTable()), "Booking table", Wt::ContentLoading::Eager);
+}
+std::unique_ptr<Wt::WContainerWidget> mainApp::createRoomTable()
+{
     auto containerForRoomsTable = std::make_unique<Wt::WContainerWidget>();
-    roomsTable.reset(containerForRoomsTable->addWidget(std::make_unique<Wt::WTable>()));
+    roomsTable = (containerForRoomsTable->addWidget(std::make_unique<Wt::WTable>()));
 
     roomsTable->setHeaderCount(1);
     roomsTable->setWidth(Wt::WLength("80%"));
-
     roomsTable->elementAt(0, 0)->addNew<Wt::WText>("#");
     roomsTable->elementAt(0, 1)->addNew<Wt::WText>("Number");
     roomsTable->elementAt(0, 2)->addNew<Wt::WText>("Building");
@@ -58,7 +61,7 @@ mainApp::mainApp(const Wt::WEnvironment &env) : Wt::WApplication(env)
     roomsTable->elementAt(0, 4)->addNew<Wt::WText>("Projector");
     roomsTable->elementAt(0, 5)->addNew<Wt::WText>("MultiDeck");
     roomsTable->elementAt(0, 6)->addNew<Wt::WText>("PCs");
-    dbo::Transaction transaction(session);
+
     {
         using Rooms = dbo::collection<dbo::ptr<Room>>;
         Rooms rooms = session.find<Room>();
@@ -77,43 +80,33 @@ mainApp::mainApp(const Wt::WEnvironment &env) : Wt::WApplication(env)
         row++;
         roomsTable->elementAt(row, 0)
             ->addNew<Wt::WText>(Wt::WString("{1}").arg(row));
-        newNumber.reset(roomsTable->elementAt(row, 1)->addNew<Wt::WLineEdit>());
+        newNumber = (roomsTable->elementAt(row, 1)->addNew<Wt::WLineEdit>());
 
-        newBuilding.reset(roomsTable->elementAt(row, 2)->addNew<Wt::WLineEdit>());
-        newCapacity.reset(roomsTable->elementAt(row, 3)->addNew<Wt::WLineEdit>());
-        newProjector.reset(roomsTable->elementAt(row, 4)->addNew<Wt::WCheckBox>());
-        newMultiDeck.reset(roomsTable->elementAt(row, 5)->addNew<Wt::WCheckBox>());
-        newPCs.reset(roomsTable->elementAt(row, 6)->addNew<Wt::WLineEdit>());
+        newBuilding = (roomsTable->elementAt(row, 2)->addNew<Wt::WLineEdit>());
+        newCapacity = (roomsTable->elementAt(row, 3)->addNew<Wt::WLineEdit>());
+        newProjector = (roomsTable->elementAt(row, 4)->addNew<Wt::WCheckBox>());
+        newMultiDeck = (roomsTable->elementAt(row, 5)->addNew<Wt::WCheckBox>());
+        newPCs = (roomsTable->elementAt(row, 6)->addNew<Wt::WLineEdit>());
     }
-    saveNewRoomButton.reset(containerForRoomsTable->addWidget(std::make_unique<Wt::WPushButton>("Save")));
+    saveNewRoomButton = (containerForRoomsTable->addWidget(std::make_unique<Wt::WPushButton>("Save")));
     saveNewRoomButton->clicked().connect(
-        [=]()
+        [t = this]()
         {
-            // just creating transaction here, its destruction will commit
-            dbo::Transaction addTransaction(session);
-            auto room = std::make_unique<Room>();
-            room->number = newNumber->text().toUTF8();
-            room->building = newBuilding->text().toUTF8();
-            room->capacity = std::atoi(newCapacity->text().toUTF8().c_str());
-            room->projector = newProjector->isChecked();
-            room->multideck = newMultiDeck->isChecked();
-            room->personalComputers = std::atoi(newPCs->text().toUTF8().c_str());
-            session.add(std::move(room));
-            saveNewRoomButton->setText("Saved");
+            t->addNewRoomToDb();
+            t->saveNewRoomButton->setText("Saved");
         });
     roomsTable->addStyleClass("table");
     roomsTable->toggleStyleClass("table-striped", true);
     roomsTable->toggleStyleClass("table-bordered", true);
     roomsTable->toggleStyleClass("table-hover", true);
     roomsTable->toggleStyleClass("table-sm", true);
+    return containerForRoomsTable;
+}
 
-    // end rooms talbe
-
-    // begin booking table
-
-    //
+std::unique_ptr<Wt::WContainerWidget> mainApp::createBookingTable()
+{
     auto containerForBookingTable = std::make_unique<Wt::WContainerWidget>();
-    bookingTable.reset(containerForBookingTable->addWidget(std::make_unique<Wt::WTable>()));
+    bookingTable = (containerForBookingTable->addWidget(std::make_unique<Wt::WTable>()));
 
     bookingTable->setHeaderCount(1);
     bookingTable->setWidth(Wt::WLength("80%"));
@@ -141,47 +134,64 @@ mainApp::mainApp(const Wt::WEnvironment &env) : Wt::WApplication(env)
         }
         row++;
         bookingTable->elementAt(row, 0)->addNew<Wt::WText>(Wt::WString("{1}").arg(row));
-        newRoom.reset(bookingTable->elementAt(row, 1)->addNew<Wt::WLineEdit>());
-        newStartTime.reset(bookingTable->elementAt(row, 2)->addNew<Wt::WLineEdit>());
-        newEndTime.reset(bookingTable->elementAt(row, 3)->addNew<Wt::WLineEdit>());
-        newSubject.reset(bookingTable->elementAt(row, 4)->addNew<Wt::WLineEdit>());
-        newLecturer.reset(bookingTable->elementAt(row, 5)->addNew<Wt::WLineEdit>());
+        newRoom = (bookingTable->elementAt(row, 1)->addNew<Wt::WLineEdit>());
+        newStartTime = (bookingTable->elementAt(row, 2)->addNew<Wt::WLineEdit>());
+        newEndTime = (bookingTable->elementAt(row, 3)->addNew<Wt::WLineEdit>());
+        newSubject = (bookingTable->elementAt(row, 4)->addNew<Wt::WLineEdit>());
+        newLecturer = (bookingTable->elementAt(row, 5)->addNew<Wt::WLineEdit>());
     }
-    saveNewBookingButton.reset(containerForBookingTable->addWidget(std::make_unique<Wt::WPushButton>("Save")));
+    saveNewBookingButton = (containerForBookingTable->addWidget(std::make_unique<Wt::WPushButton>("Save")));
     saveNewBookingButton->clicked().connect(
-        [=]()
+        [t = this]()
         {
-            // just creating transaction here, its destruction will commit
-            // dbo::Transaction addTransaction(session);
-            auto booking = std::make_unique<BookingRecord>();
-            dbo::Transaction transaction(session);
-            auto requiredRoom = session.find<Room>().where("number = ?").bind(newRoom->text().toUTF8());
-            auto sizeOfResult = requiredRoom.resultList().size();
-            if (sizeOfResult !=1) {
-                Wt::StandardButton answer
-                = Wt::WMessageBox::show("Error",
-                                    "<p>Wrong data for room number!</p>",
-                                    Wt::StandardButton::Ok);
-                // to remove unused var warning
-                (void)answer;
+            bool retFlag;
+            t->addNewBookingToDb(retFlag);
+            if (retFlag)
                 return;
-            }
-            booking->room = requiredRoom;
-            booking->startTime = std::atoi(newStartTime->text().toUTF8().c_str());
-            booking->endTime = std::atoi(newEndTime->text().toUTF8().c_str());
-            booking->subject = newSubject->text().toUTF8();
-            booking->lecturer = newLecturer->text().toUTF8();
-            session.add(std::move(booking));
-            saveNewBookingButton->setText("Saved");
+            t->saveNewBookingButton->setText("Saved");
         });
     bookingTable->addStyleClass("table");
     bookingTable->toggleStyleClass("table-striped", true);
     bookingTable->toggleStyleClass("table-bordered", true);
     bookingTable->toggleStyleClass("table-hover", true);
     bookingTable->toggleStyleClass("table-sm", true);
+    return containerForBookingTable;
+}
 
-    // end booking table
+void mainApp::addNewBookingToDb(bool &retFlag)
+{
+    retFlag = true;
+    dbo::Transaction transaction(session);
+    auto requiredRoom = session.find<Room>().where("number = ?").bind(newRoom->text().toUTF8());
+    auto sizeOfResult = requiredRoom.resultList().size();
+    if (sizeOfResult != 1)
+    {
+        Wt::StandardButton answer = Wt::WMessageBox::show("Error",
+                                                          "<p>Wrong data for room number!</p>",
+                                                          Wt::StandardButton::Ok);
+        // to remove unused var warning
+        (void)answer;
+        return;
+    }
+    auto booking = std::make_unique<BookingRecord>();
+    booking->room = requiredRoom;
+    booking->startTime = std::atoi(newStartTime->text().toUTF8().c_str());
+    booking->endTime = std::atoi(newEndTime->text().toUTF8().c_str());
+    booking->subject = newSubject->text().toUTF8();
+    booking->lecturer = newLecturer->text().toUTF8();
+    session.add(std::move(booking));
+    retFlag = false;
+}
 
-    tabW->addTab(std::move(containerForRoomsTable), "Rooms table", Wt::ContentLoading::Eager);
-    tabW->addTab(std::move(containerForBookingTable), "Booking table", Wt::ContentLoading::Eager);
+void mainApp::addNewRoomToDb()
+{
+    dbo::Transaction addTransaction(session);
+    auto room = std::make_unique<Room>();
+    room->number = newNumber->text().toUTF8();
+    room->building = newBuilding->text().toUTF8();
+    room->capacity = std::atoi(newCapacity->text().toUTF8().c_str());
+    room->projector = newProjector->isChecked();
+    room->multideck = newMultiDeck->isChecked();
+    room->personalComputers = std::atoi(newPCs->text().toUTF8().c_str());
+    session.add(std::move(room));
 }
