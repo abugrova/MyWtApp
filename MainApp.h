@@ -1,5 +1,4 @@
-#ifndef MAINAPP_H
-#define MAINAPP_H
+#pragma once
 
 #include <Wt/WApplication.h>
 #include <Wt/WText.h>
@@ -14,39 +13,10 @@ public:
     mainApp(const Wt::WEnvironment &env);
     mainApp(const mainApp &other) = delete;
 
-    std::unique_ptr<Wt::WContainerWidget> createBookingTable();
-    std::unique_ptr<Wt::WContainerWidget> createRoomTable();
-    std::unique_ptr<Wt::WContainerWidget> createBooker();
-
-    void addNewBookingToDb(bool &retFlag);
-    void addNewRoomToDb();
-
     static mainApp *mainPageInst()
     {
         return (mainApp *)WApplication::instance();
     }
-
-    // wtable for rooms table
-    Wt::WTable *roomsTable{};
-
-    Wt::WLineEdit *newNumber{};
-    Wt::WLineEdit *newBuilding{};
-    Wt::WLineEdit *newCapacity{};
-    Wt::WCheckBox *newProjector{};
-    Wt::WCheckBox *newMultiDeck{};
-    Wt::WLineEdit *newPCs{};
-
-    Wt::WPushButton *saveNewRoomButton{};
-
-    Wt::WTable *bookingTable{};
-    // unix epoch format?
-    Wt::WLineEdit *newStartTime{};
-    Wt::WLineEdit *newEndTime{};
-
-    Wt::WLineEdit *newLecturer{};
-    Wt::WLineEdit *newSubject{};
-    Wt::WLineEdit *newRoom{};
-    Wt::WPushButton *saveNewBookingButton{};
 
     ~mainApp()
     {
@@ -58,20 +28,49 @@ public:
     {
         this->refresh();
     }
+    std::string choosenInstitute{};
+    void instituteChoosen();
+
+    int choosenBuilding{-1};
+    void buildingChoosen();
+
+    int choosenDay{-1};
+    bool evenWeek{};
+    void dayIsChoosen();
+
+    Wt::WLineEdit *newRoom;
+    Wt::WLineEdit *newTime;
 };
 
 namespace dbo = Wt::Dbo;
 
+// forward declarations of data strcuts
+struct Room;
 struct BookingRecord;
+struct Institute;
+
+struct Institute
+{
+    std::string shortName{};
+    std::string longName{};
+
+    template <class Action>
+    void persist(Action &a)
+    {
+        dbo::field(a, shortName, "shortName");
+        dbo::field(a, longName, "longName");
+    }
+};
 
 struct Room
 {
-    std::string number;
-    std::string building;
-    int capacity;
-    bool projector;
-    bool multideck;
-    int personalComputers;
+    std::string number{};
+    std::string institute{};
+    std::string building{};
+    int capacity{};
+    bool projector{};
+    bool multideck{};
+    int personalComputers{};
 
     dbo::collection<dbo::ptr<BookingRecord>> bookingRecords;
 
@@ -79,6 +78,7 @@ struct Room
     void persist(Action &a)
     {
         dbo::field(a, number, "number");
+        dbo::field(a, institute, "institute");
         dbo::field(a, building, "building");
         dbo::field(a, capacity, "capacity");
         dbo::field(a, projector, "projector");
@@ -90,22 +90,22 @@ struct Room
 
 struct BookingRecord
 {
-    int64_t startTime;
-    int64_t endTime;
-    std::string lecturer;
-    std::string subject;
-    dbo::ptr<Room> room;
+    int timeSlot{};
+    int dayOfWeek{};
+    bool evenWeek{};
+    std::string lecturer{};
+    std::string subject{};
+    dbo::ptr<Room> room{};
 
     template <class Action>
     void persist(Action &a)
     {
-        dbo::field(a, startTime, "startTime");
-        dbo::field(a, endTime, "endTime");
+        dbo::field(a, timeSlot, "timeSlot");
+        dbo::field(a, dayOfWeek, "dayOfWeek");
+        dbo::field(a, evenWeek, "evenWeek");
         dbo::field(a, lecturer, "lecturer");
         dbo::field(a, subject, "subject");
 
         dbo::belongsTo(a, room, "room");
     }
 };
-
-#endif // MAINAPP_H
