@@ -4,6 +4,13 @@
 #include <Wt/WText.h>
 #include <Wt/WTemplate.h>
 #include <Wt/Dbo/Dbo.h>
+namespace dbo = Wt::Dbo;
+
+// forward declarations of data strcuts
+struct Building;
+struct Room;
+struct BookingRecord;
+struct Institute;
 
 class mainApp : public Wt::WApplication
 {
@@ -28,10 +35,11 @@ public:
     {
         this->refresh();
     }
-    std::string choosenInstitute{};
+
+    dbo::ptr<Institute> choosenInstitute{};
     void instituteChoosen();
 
-    int choosenBuilding{-1};
+    dbo::ptr<Building> choosenBuilding{};
     void buildingChoosen();
 
     int choosenDay{-1};
@@ -42,31 +50,42 @@ public:
     Wt::WLineEdit *newTime;
 };
 
-namespace dbo = Wt::Dbo;
+struct Building
+{
+    std::string number;
+    std::string address;
 
-// forward declarations of data strcuts
-struct Room;
-struct BookingRecord;
-struct Institute;
+    dbo::collection<dbo::ptr<Room>> rooms;
+
+    template <class Action>
+    void persist(Action &a)
+    {
+        dbo::field(a, number, "number");
+        dbo::field(a, address, "address");
+        dbo::hasMany(a, rooms, dbo::ManyToOne, "building");
+    }
+};
 
 struct Institute
 {
     std::string shortName{};
     std::string longName{};
+    dbo::collection<dbo::ptr<Room>> rooms;
 
     template <class Action>
     void persist(Action &a)
     {
         dbo::field(a, shortName, "shortName");
         dbo::field(a, longName, "longName");
+        dbo::hasMany(a, rooms, dbo::ManyToOne, "institute");
     }
 };
 
 struct Room
 {
     std::string number{};
-    std::string institute{};
-    std::string building{};
+    dbo::ptr<Institute> institute{};
+    dbo::ptr<Building> building{};
     int capacity{};
     bool projector{};
     bool multideck{};
@@ -78,8 +97,8 @@ struct Room
     void persist(Action &a)
     {
         dbo::field(a, number, "number");
-        dbo::field(a, institute, "institute");
-        dbo::field(a, building, "building");
+        dbo::belongsTo(a, institute, "institute");
+        dbo::belongsTo(a, building, "building");
         dbo::field(a, capacity, "capacity");
         dbo::field(a, projector, "projector");
         dbo::field(a, multideck, "multideck");

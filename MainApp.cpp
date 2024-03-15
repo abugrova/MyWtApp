@@ -19,6 +19,7 @@
 #include <Wt/WColor.h>
 
 #include <string>
+#include <thread>
 
 namespace dbo = Wt::Dbo;
 
@@ -28,6 +29,7 @@ mainApp::mainApp(const Wt::WEnvironment &env) : Wt::WApplication(env)
     sqlite3->setProperty("show-queries", "true");
     session.setConnection(std::move(sqlite3));
 
+    session.mapClass<Building>("building");
     session.mapClass<Institute>("institute");
     session.mapClass<Room>("room");
     session.mapClass<BookingRecord>("bookingRecord");
@@ -52,14 +54,15 @@ mainApp::mainApp(const Wt::WEnvironment &env) : Wt::WApplication(env)
     auto container = containerAll->setLayout(std::make_unique<Wt::WVBoxLayout>());
     auto head = container->addWidget(std::make_unique<Wt::WText>());
     head->setText("Выберите интитут");
+    head->toggleStyleClass("h2", true);
 
     for (auto institute : institutes)
     {
         auto btn = container->addWidget(std::make_unique<Wt::WPushButton>());
         btn->setText(institute->shortName);
-        btn->clicked().connect([shortName = institute->shortName, this]()
+        btn->clicked().connect([=]()
                                {
-            choosenInstitute = shortName;
+            choosenInstitute = institute;
             instituteChoosen(); });
     }
     // create tab widget
@@ -79,14 +82,18 @@ void mainApp::instituteChoosen()
     auto container = containerAll->setLayout(std::make_unique<Wt::WVBoxLayout>());
     auto head = container->addWidget(std::make_unique<Wt::WText>());
     head->setText("Выберите корпус");
+    head->toggleStyleClass("h2", true);
 
-    for (auto i = 1; i <= 6; i++)
+    dbo::Transaction transaction(session);
+    auto buildings = session.find<Building>().resultList();
+
+    for (auto building : buildings)
     {
         auto btn = container->addWidget(std::make_unique<Wt::WPushButton>());
-        btn->setText(std::to_string(i) + " Корпус");
-        btn->clicked().connect([i, this]()
+        btn->setText(building->number);
+        btn->clicked().connect([=]()
                                {
-            choosenBuilding = i;
+            choosenBuilding = building;
             buildingChoosen(); });
     }
 }
@@ -100,14 +107,14 @@ void mainApp::buildingChoosen()
     auto container = containerAll->setLayout(std::make_unique<Wt::WVBoxLayout>());
     auto head = container->addWidget(std::make_unique<Wt::WText>());
     head->setText("Выберите день недели");
-
+    head->toggleStyleClass("h2", true);
     auto twoColumnsBtns = container->addWidget(std::make_unique<Wt::WContainerWidget>());
     auto twoColumnsBtnsH = twoColumnsBtns->setLayout(std::make_unique<Wt::WHBoxLayout>());
     auto twoColumnsBtns1 = twoColumnsBtnsH->addWidget(std::make_unique<Wt::WContainerWidget>());
     auto twoColumnsBtns1V = twoColumnsBtns1->setLayout(std::make_unique<Wt::WVBoxLayout>());
     auto head1 = twoColumnsBtns1V->addWidget(std::make_unique<Wt::WText>());
     head1->setText("Четная неделя");
-
+    head1->toggleStyleClass("h3", true);
     std::vector<std::string> days{
         "Понедельник",
         "Вторник",
@@ -130,6 +137,7 @@ void mainApp::buildingChoosen()
     auto twoColumnsBtns2V = twoColumnsBtns2->setLayout(std::make_unique<Wt::WVBoxLayout>());
     auto head2 = twoColumnsBtns2V->addWidget(std::make_unique<Wt::WText>());
     head2->setText("НеЧетная неделя");
+    head2->toggleStyleClass("h3", true);
     for (auto i = 0u; i < days.size(); i++)
     {
         auto btn = twoColumnsBtns2V->addWidget(std::make_unique<Wt::WPushButton>());
@@ -151,7 +159,7 @@ void mainApp::dayIsChoosen()
     auto container = containerAll->setLayout(std::make_unique<Wt::WVBoxLayout>());
     auto head = container->addWidget(std::make_unique<Wt::WText>());
     head->setText("Выберите аудиторию и пару");
-
+    head->toggleStyleClass("h2", true);
     auto table = container->addWidget(std::make_unique<Wt::WTable>());
     // make table butiful
     table->addStyleClass("table");
@@ -171,9 +179,9 @@ void mainApp::dayIsChoosen()
     dbo::Transaction t(session);
     using Rooms = dbo::collection<dbo::ptr<Room>>;
     Rooms rooms = session.find<Room>()
-                      .where("institute = ?")
+                      .where("institute_id = ?")
                       .bind(choosenInstitute)
-                      .where("building = ?")
+                      .where("building_id = ?")
                       .bind(choosenBuilding);
     int row = 0;
     for (const dbo::ptr<Room> &room : rooms)
@@ -222,8 +230,17 @@ void mainApp::dayIsChoosen()
     addButton->setText("Добавить запись");
     addButton->clicked().connect([=]()
                                  {
+        addButton->setText("Добавляем...");
+        using namespace std::chrono;
+        std::this_thread::sleep_for(500ms);
+
         dbo::Transaction add(session);
-        auto requiredRoom = session.find<Room>().where("number = ?").bind(newRoom->text().toUTF8());
+        auto requiredRoom = session.find<Room>()
+                      .where("institute_id = ?")
+                      .bind(choosenInstitute)
+                      .where("building_id = ?")
+                      .bind(choosenBuilding)
+                      .where("number = ?").bind(newRoom->text().toUTF8());
         auto sizeOfResult = requiredRoom.resultList().size();
         if (sizeOfResult != 1)
         {
@@ -232,6 +249,7 @@ void mainApp::dayIsChoosen()
                                                             Wt::StandardButton::Ok);
             // to remove unused var warning
             (void)answer;
+            addButton->setText("Добавить запись");
             return;
         }
 
@@ -245,11 +263,29 @@ void mainApp::dayIsChoosen()
             // to remove unused var warning
             (void)answer;
             log("error") << "invalid timeslot conversion, input was:" << newTime->text().toUTF8();
+            addButton->setText("Добавить запись");
             return;
         }
         booking->dayOfWeek = choosenDay;
         booking->evenWeek = evenWeek;
         session.add(std::move(booking)); 
         add.commit();
-        dayIsChoosen(); });
+        auto messageBox =
+            container->addChild(std::make_unique<Wt::WMessageBox>(
+                    "Запись успешно добавлена!",
+                    "<p>Продолжить?</p>",
+                    Wt::Icon::Information,
+                    Wt::StandardButton::Yes | Wt::StandardButton::No));
+
+        messageBox->setModal(true);
+
+        messageBox->buttonClicked().connect([=] {
+            if (messageBox->buttonResult() == Wt::StandardButton::Yes){
+                dayIsChoosen();
+            }
+            else{
+                container->removeChild(messageBox);
+            }
+        });
+        messageBox->show(); });
 }
