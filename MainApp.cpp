@@ -47,6 +47,12 @@ mainApp::mainApp(const Wt::WEnvironment &env) : Wt::WApplication(env)
 
         transaction.commit();
     }
+
+    mainPage();
+}
+
+void mainApp::mainPage()
+{
     dbo::Transaction transaction(session);
     auto institutes = session.find<Institute>().resultList();
 
@@ -65,12 +71,6 @@ mainApp::mainApp(const Wt::WEnvironment &env) : Wt::WApplication(env)
             choosenInstitute = institute;
             instituteChoosen(); });
     }
-    // create tab widget
-    // Wt::WTabWidget *tabW = this->root()->addNew<Wt::WTabWidget>();
-    // tabW->setStyleClass("tabwidget");
-    // tabW->addTab(std::move(createRoomTable()), "Rooms table", Wt::ContentLoading::Eager);
-    // tabW->addTab(std::move(createBookingTable()), "Booking table", Wt::ContentLoading::Eager);
-    // tabW->addTab(std::move(createBooker()), "Booker view", Wt::ContentLoading::Eager);
 }
 
 void mainApp::instituteChoosen()

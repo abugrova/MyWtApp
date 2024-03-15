@@ -27,14 +27,11 @@ public:
 
     ~mainApp()
     {
-        log("info") << "start desctruction";
-        // saveNewRoomButton.reset();
-        log("info") << "end desctruction";
+        log("info") << "mainApp is to be destroyed";
     }
-    void refresh()
-    {
-        this->refresh();
-    }
+
+    // each function is separate page
+    void mainPage();
 
     dbo::ptr<Institute> choosenInstitute{};
     void instituteChoosen();
