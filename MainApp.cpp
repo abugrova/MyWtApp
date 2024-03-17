@@ -25,7 +25,7 @@ namespace dbo = Wt::Dbo;
 
 mainApp::mainApp(const Wt::WEnvironment &env) : Wt::WApplication(env)
 {
-    auto sqlite3 = std::make_unique<Wt::Dbo::backend::Sqlite3>(WApplication::appRoot() + "table.db");
+    auto sqlite3 = std::make_unique<dbo::backend::Sqlite3>(WApplication::appRoot() + "table.db");
     sqlite3->setProperty("show-queries", "true");
     session.setConnection(std::move(sqlite3));
 
@@ -34,7 +34,7 @@ mainApp::mainApp(const Wt::WEnvironment &env) : Wt::WApplication(env)
     session.mapClass<Room>("room");
     session.mapClass<BookingRecord>("bookingRecord");
     {
-        Wt::Dbo::Transaction transaction(session);
+        dbo::Transaction transaction(session);
         try
         {
             session.createTables();
@@ -233,7 +233,6 @@ void mainApp::dayIsChoosen()
         addButton->setText("Добавляем...");
         using namespace std::chrono;
         std::this_thread::sleep_for(500ms);
-
         dbo::Transaction add(session);
         auto requiredRoom = session.find<Room>()
                       .where("institute_id = ?")
@@ -284,6 +283,7 @@ void mainApp::dayIsChoosen()
                 dayIsChoosen();
             }
             else{
+                addButton->setText("Добавлено.");
                 container->removeChild(messageBox);
             }
         });
