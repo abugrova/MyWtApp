@@ -267,6 +267,39 @@ void mainApp::dayIsChoosen()
         }
         booking->dayOfWeek = choosenDay;
         booking->evenWeek = evenWeek;
+
+        size_t sizeRecords = 0;
+        //query dont work )) 
+        /*
+        BookingRecords bookings = session.find<BookingRecord>()
+                                      .where("room_id = ?")
+                                      .bind(room)
+                                      .where("dayOfWeek = ?")
+                                      .bind(choosenDay)
+                                      .where("evenWeek = ?")
+                                      .bind(evenWeek);
+        */
+        auto existingRecors = session.find<BookingRecord>()
+                                    .where("timeSlot = ?")
+                                    .bind(booking->timeSlot)
+                                    .where("dayOfWeek = ?")
+                                    .bind(booking->dayOfWeek)
+                                    .where("evenWeek = ?")
+                                    .bind(booking->evenWeek)
+                                    .where("room_id = ?")
+                                    .bind(booking->room);
+        sizeRecords = existingRecors.resultList().size();
+        if (sizeRecords > 0){
+            Wt::StandardButton answer = Wt::WMessageBox::show("Ошибка",
+                                                            "<p>Данная аудитория уже занята в выбранное время!</p>",
+                                                            Wt::StandardButton::Ok);
+            // to remove unused var warning
+            (void)answer;
+            log("error") << "invalid parameters, input was:" << newTime->text().toUTF8();
+            //addButton->setText("Добавить запись");
+            return;
+        }
+
         session.add(std::move(booking)); 
         add.commit();
         auto messageBox =
